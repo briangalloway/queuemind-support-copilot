@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "QueueMind Support Copilot",
+  "version": "1.0",
+  "description": "AI-driven support engineering copilot, queue routing, and local data protection widget.",
+  "icons": {
+    "16": "queuemind_logo.png",
+    "48": "queuemind_logo.png",
+    "128": "queuemind_logo.png"
+  },
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "file:///*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_icon": "queuemind_logo.png",
+    "default_title": "Open QueueMind Copilot"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}

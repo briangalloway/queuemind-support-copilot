@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Helpdesk Support Portal - Zapier Integration Queue</title>
+  <link rel="icon" type="image/png" href="helpdesk_logo.png">
+  <style>
+    :root {
+      --primary-color: #03363d;
+      --secondary-color: #1f73b7;
+      --background-light: #f5f7f8;
+      --border-color: #d8dcde;
+      --text-dark: #2f3941;
+      --text-light: #68737d;
+      --badge-open: #e0f2f1;
+      --badge-open-text: #00796b;
+      --badge-stalled: #ffebee;
+      --badge-stalled-text: #c62828;
+      --badge-closed: #e8eaed;
+      --badge-closed-text: #5f6368;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-dark);
+      background-color: var(--background-light);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 50px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      display: inline-block;
+      object-fit: contain;
+    }
+
+    .user-profile {
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      min-height: 28px;
+      flex-shrink: 0;
+      background-color: #1f73b7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 12px;
+      overflow: hidden;
+    }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left Sidebar: Ticket List */
+    .ticket-list-panel {
+      width: 320px;
+      background-color: white;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .panel-header {
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 14px;
+      background-color: #fcfdfd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .search-filter-panel {
+      padding: 10px 15px;
+      background-color: #f8fafb;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 6px 10px;
+      font-size: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--secondary-color);
+    }
+    .filter-row {
+      display: flex;
+      gap: 6px;
+    }
+    .filter-select {
+      flex: 1;
+      padding: 4px 6px;
+      font-size: 11px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background-color: white;
+      outline: none;
+    }
+    .filter-select:focus {
+      border-color: var(--secondary-color);
+    }
+
+    .ticket-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .ticket-item {
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .ticket-item:hover {
+      background-color: #f8fafb;
+    }
+
+    .ticket-item.active {
+      background-color: #edf5fa;
+      border-left: 4px solid var(--secondary-color);
+    }
+
+    .ticket-item-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+
+    .ticket-id {
+      font-weight: 600;
+      color: var(--secondary-color);
+    }
+
+    .ticket-status {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-open {
+      background-color: var(--badge-open);
+      color: var(--badge-open-text);
+    }
+
+    .status-stalled {
+      background-color: var(--badge-stalled);
+      color: var(--badge-stalled-text);
+    }
+
+    .status-closed {
+      background-color: var(--badge-closed);
+      color: var(--badge-closed-text);
+    }
+
+    .ticket-subject {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ticket-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-light);
+    }
+
+    /* Right Main Panel: Ticket View */
+    .ticket-content-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: white;
+      height: 100%;
+    }
+
+    .ticket-details-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ticket-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .ticket-title-row h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 5px;
+    }
+
+    .assignee-badge {
+      background-color: #f1f8ff;
+      border: 1px solid #c8e1ff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0366d6;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .assignee-badge #assignee-avatar {
+      background-color: #0366d6;
+      color: white;
+      font-size: 10px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .ticket-attributes-row {
+      display: flex;
+      gap: 20px;
+      font-size: 12px;
+      color: var(--text-light);
+      flex-wrap: wrap;
+    }
+
+    .attr {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .attr-label {
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    /* Conversation Stream */
+    .conversation-stream {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background-color: #f8fafb;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .message-card {
+      background-color: white;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      max-width: 85%;
+    }
+
+    .message-card.customer {
+      align-self: flex-start;
+      border-left: 4px solid var(--secondary-color);
+    }
+
+    .message-card.agent {
+      align-self: flex-end;
+      background-color: #f1f8ff;
+      border-left: 4px solid #0366d6;
+    }
+
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-dark);
+    }
+
+    .message-sender {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .message-time {
+      font-weight: 400;
+      color: var(--text-light);
+    }
+
+    .message-body {
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .message-body code {
+      background-color: #f1f1f1;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    /* Reply area */
+    .reply-area {
+      padding: 15px 20px;
+      border-top: 1px solid var(--border-color);
+      background-color: white;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .reply-input {
+      flex: 1;
+      height: 40px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 10px;
+      font-size: 13px;
+      background-color: #f8fafb;
+      cursor: not-allowed;
+    }
+
+    .send-btn {
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    /* Toast system */
+    .toast {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background-color: #333;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast-icon {
+      background-color: #4caf50;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Helpdesk Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <img src="helpdesk_logo.png" class="brand-logo" alt="Helpdesk Logo">
+      Helpdesk Agent Workspace (Simulated Portal)
+    </div>
+    <div class="user-profile">
+      <span>Zapier Support Manager</span>
+      <div class="avatar"><img src="avatar_manager.png" style="width:100%; height:100%; border-radius:50%; object-fit:cover;"></div>
+    </div>
+  </header>
+
+  <!-- Main Grid Workspace -->
+  <div class="main-container">
+
+    <!-- Left Sidebar: Ticket List -->
+    <div class="ticket-list-panel">
+      <div class="panel-header">
+        <span>Integration Queue</span>
+        <span style="font-size: 11px; background: #ddd; padding: 2px 6px; border-radius: 10px;" id="ticket-count">0 tickets</span>
+      </div>
+      <div class="search-filter-panel">
+        <input type="text" id="search-input" class="search-input" placeholder="Search by ID, account, subject...">
+        <div class="filter-row">
+          <select id="filter-priority" class="filter-select">
+            <option value="">All Priorities</option>
+            <option value="Highest">Highest</option>
+            <option value="High">High</option>
+            <option value="Normal">Normal</option>
+            <option value="Low">Low</option>
+          </select>
+          <div class="custom-multiselect" id="status-multiselect-container" style="position: relative; flex: 1;">
+            <div class="multiselect-trigger" id="status-multiselect-trigger" style="display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; font-size: 11px; border: 1px solid var(--border-color); border-radius: 4px; background-color: white; cursor: pointer; height: 23px; user-select: none; box-sizing: border-box;">
+              <span id="status-selected-label" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px;">All Unresolved</span>
+              <span style="font-size: 8px; color: var(--text-light); margin-left: 2px;">▼</span>
+            </div>
+            <div class="multiselect-options" id="status-multiselect-options" style="display: none; position: absolute; top: 26px; left: 0; right: 0; background: white; border: 1px solid var(--border-color); border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; padding: 6px; max-height: 180px; overflow-y: auto; width: 150px;">
+              <div style="display: flex; align-items: center; gap: 6px; padding: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                <input type="checkbox" id="status-opt-unresolved" value="unresolved" checked style="cursor: pointer; transform: scale(0.95);">
+                <label for="status-opt-unresolved" style="cursor: pointer; flex: 1; font-weight: 600;">All Unresolved</label>
+              </div>
+              <hr style="margin: 4px 0; border: none; border-top: 1px solid var(--border-color);">
+              <div style="display: flex; align-items: center; gap: 6px; padding: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                <input type="checkbox" class="status-individual-opt" id="status-opt-open" value="Open" style="cursor: pointer; transform: scale(0.95);">
+                <label for="status-opt-open" style="cursor: pointer; flex: 1;">Open</label>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; padding: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                <input type="checkbox" class="status-individual-opt" id="status-opt-inprogress" value="In Progress" style="cursor: pointer; transform: scale(0.95);">
+                <label for="status-opt-inprogress" style="cursor: pointer; flex: 1;">In Progress</label>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; padding: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                <input type="checkbox" class="status-individual-opt" id="status-opt-waiting" value="Waiting on Customer" style="cursor: pointer; transform: scale(0.95);">
+                <label for="status-opt-waiting" style="cursor: pointer; flex: 1;">Waiting on Customer</label>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; padding: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                <input type="checkbox" class="status-individual-opt" id="status-opt-pending" value="Pending Engineering" style="cursor: pointer; transform: scale(0.95);">
+                <label for="status-opt-pending" style="cursor: pointer; flex: 1;">Pending Engineering</label>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; padding: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                <input type="checkbox" class="status-individual-opt" id="status-opt-closed" value="Closed" style="cursor: pointer; transform: scale(0.95);">
+                <label for="status-opt-closed" style="cursor: pointer; flex: 1; font-weight: 500; color: var(--text-light);">Closed</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ticket-list" id="ticket-list-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Right Main Pane: Active Ticket Detail View -->
+    <div class="ticket-content-panel" id="ticket-detail-view">
+      <!-- Embedded elements with attributes for Chrome Extension to scrape -->
+      <div id="active-ticket-container" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+        
+        <div class="ticket-details-header">
+          <div class="ticket-title-row">
+            <div>
+              <h1 id="ticket-subject">Select a ticket from the sidebar to inspect...</h1>
+              <div style="font-size: 12px; color: var(--text-light);" id="ticket-id-tag">--</div>
+            </div>
+            <div class="assignee-badge" id="ticket-assignee-badge" style="display: none;">
+              <span id="assignee-avatar">AC</span>
+              <span id="assignee-name">Alex Chen</span>
+            </div>
+          </div>
+          <div class="ticket-attributes-row" id="ticket-attributes" style="display: none;">
+            <div class="attr">
+              <span class="attr-label">Account:</span>
+              <span id="attr-account">Acme Corp</span>
+            </div>
+            <div class="attr">
+              <span class="attr-label">Contact:</span>
+              <span id="attr-contact">brian@acmecorp.com</span>
+            </div>
+            <div class="attr">
+              <span class="attr-label">Category:</span>
+              <span id="attr-category">Webhooks</span>
+            </div>
+            <div class="attr">
+              <span class="attr-label">Created:</span>
+              <span id="attr-created">--</span>
+            </div>
+            <div class="attr">
+              <span class="attr-label">Status:</span>
+              <span id="attr-status" style="font-weight:600; text-transform: uppercase;">Open</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scrollable Conversation Log -->
+        <div class="conversation-stream" id="conversation-stream-container">
+          <div style="text-align: center; color: var(--text-light); margin-top: 50px; font-size: 14px;">
+            No ticket loaded. Use the left sidebar to browse active customer support tickets.
+          </div>
+        </div>
+
+        <!-- Simulated Response Area -->
+        <div class="reply-area">
+          <input type="text" class="reply-input" placeholder="Type customer reply... (Disabled. Use QueueMind Copilot sidebar on the right)" disabled>
+          <button class="send-btn" disabled>Send</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Reassignment Toast Notification -->
+  <div class="toast" id="reassign-toast">
+    <span class="toast-icon"></span>
+    <span id="toast-message">Ticket Owner updated successfully.</span>
+  </div>
+
+  <!-- Load Global Mock Data -->
+  <script src="mockData.js"></script>
+
+  <script>
+    // Local Page Management Script
+    let activeTicketId = null;
+
+    function formatTicketId(id) {
+      if (!id) return "";
+      return id.replace(/^[tT][_-]/, "T-").replace(/^t_/, "T-").replace(/^t-/, "T-").toUpperCase();
+    }
+
+    async function loadStateFromServer() {
+      try {
+        const res = await fetch("/api/state");
+        if (res.ok) {
+          window.queueMindMockData = await res.json();
+          console.log("Mock helpdesk state loaded from server API.");
+        }
+      } catch (err) {
+        console.warn("Could not load state from server API, falling back to static mockData.js:", err);
+      }
+    }
+
+    async function init() {
+      // Add event listeners for search and priority filters
+      document.getElementById("search-input").addEventListener("input", renderTicketList);
+      document.getElementById("filter-priority").addEventListener("change", renderTicketList);
+
+      // Load state from API
+      await loadStateFromServer();
+
+      // Custom Multiselect logic for Status
+      const trigger = document.getElementById("status-multiselect-trigger");
+      const optionsDiv = document.getElementById("status-multiselect-options");
+      
+      trigger.addEventListener("click", function(e) {
+        e.stopPropagation();
+        optionsDiv.style.display = optionsDiv.style.display === "none" ? "block" : "none";
+      });
+
+      document.addEventListener("click", function(e) {
+        const container = document.getElementById("status-multiselect-container");
+        if (container && !container.contains(e.target)) {
+          optionsDiv.style.display = "none";
+        }
+      });
+
+      const unresolvedCheck = document.getElementById("status-opt-unresolved");
+      const individualChecks = document.querySelectorAll(".status-individual-opt");
+
+      unresolvedCheck.addEventListener("change", function() {
+        if (unresolvedCheck.checked) {
+          individualChecks.forEach(cb => cb.checked = false);
+        }
+        updateStatusLabelAndRender();
+      });
+
+      individualChecks.forEach(cb => {
+        cb.addEventListener("change", function() {
+          if (cb.checked) {
+            unresolvedCheck.checked = false;
+          }
+          const anyChecked = Array.from(individualChecks).some(c => c.checked);
+          if (!anyChecked) {
+            unresolvedCheck.checked = true;
+          }
+          updateStatusLabelAndRender();
+        });
+      });
+
+      renderTicketList();
+      
+      // Read ticket from URL parameter if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const ticketParam = urlParams.get('ticket') || urlParams.get('id');
+      
+      if (ticketParam && window.queueMindMockData && ((window.queueMindMockData.helpdeskTickets && window.queueMindMockData.helpdeskTickets.some(t => t.id === ticketParam)) || (window.queueMindMockData.closedTickets && window.queueMindMockData.closedTickets.some(t => t.id === ticketParam)))) {
+        selectTicket(ticketParam, false);
+      } else if (window.queueMindMockData && window.queueMindMockData.helpdeskTickets && window.queueMindMockData.helpdeskTickets.length > 0) {
+        // Select the first ticket by default to show some immediate content
+        selectTicket(window.queueMindMockData.helpdeskTickets[0].id, true);
+      }
+
+      // Add listener to handle extension reassignment and selection requests
+      window.addEventListener("message", function(event) {
+        // Handle messages from the extension (injected script/content script communication)
+        const data = event.data;
+        if (data && data.type === "QUEUE_MIND_REASSIGN") {
+          executeLocalReassign(data.ticketId, data.newAssigneeName, data.newAssigneeId);
+        } else if (data && data.type === "QUEUE_MIND_SELECT") {
+          selectTicket(data.ticketId, true);
+        } else if (data && data.type === "QUEUE_MIND_SYNC_DRAFT") {
+          const formattedId = data.ticketId.startsWith("T-") ? data.ticketId : `T-${data.ticketId.replace('t_','')}`;
+          if (activeTicketId === formattedId) {
+            const replyInput = document.querySelector(".reply-input");
+            const sendBtn = document.querySelector(".send-btn");
+            if (replyInput && sendBtn) {
+              replyInput.value = data.draft;
+              replyInput.disabled = false;
+              replyInput.placeholder = "Review and edit manager reply...";
+              replyInput.style.cursor = "text";
+              sendBtn.disabled = false;
+              sendBtn.style.opacity = "1";
+              sendBtn.style.cursor = "pointer";
+            }
+          }
+        }
+      });
+
+      // Bind send button actions to POST manager reply
+      const replyInput = document.querySelector(".reply-input");
+      const sendBtn = document.querySelector(".send-btn");
+      
+      const submitReply = async () => {
+        if (!activeTicketId || replyInput.disabled || !replyInput.value.trim()) return;
+        
+        const message = replyInput.value.trim();
+        replyInput.disabled = true;
+        sendBtn.disabled = true;
+        sendBtn.style.opacity = "0.7";
+        sendBtn.innerText = "Sending...";
+        
+        try {
+          const res = await fetch("/api/reply", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ ticketId: activeTicketId, message: message })
+          });
+          
+          if (res.ok) {
+            await loadStateFromServer();
+            selectTicket(activeTicketId);
+            
+            // Notify sidepanel
+            window.postMessage({
+              type: "QUEUE_MIND_REPLY_SUBMITTED",
+              ticketId: activeTicketId
+            }, "*");
+            
+            // Toast notification
+            const toast = document.getElementById("reassign-toast");
+            document.getElementById("toast-message").innerText = "Reply submitted successfully.";
+            toast.classList.add("show");
+            setTimeout(() => { toast.classList.remove("show"); }, 3000);
+            
+            replyInput.value = "";
+            replyInput.placeholder = "Type customer reply... (Disabled. Use QueueMind Copilot sidebar on the right)";
+            replyInput.disabled = true;
+            replyInput.style.cursor = "not-allowed";
+            sendBtn.disabled = true;
+            sendBtn.style.opacity = "0.7";
+            sendBtn.style.cursor = "not-allowed";
+            sendBtn.innerText = "Send";
+          } else {
+            throw new Error(`Server returned ${res.status}`);
+          }
+        } catch (err) {
+          console.error("Failed to submit reply:", err);
+          alert(`Failed to submit reply: ${err.message}`);
+          replyInput.disabled = false;
+          sendBtn.disabled = false;
+          sendBtn.style.opacity = "1";
+          sendBtn.innerText = "Send";
+        }
+      };
+
+      sendBtn.addEventListener("click", submitReply);
+      replyInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          submitReply();
+        }
+      });
+
+      // Handle back/forward navigation using popstate event
+      window.addEventListener("popstate", function(event) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const ticketParam = urlParams.get('ticket') || urlParams.get('id');
+        if (ticketParam) {
+          selectTicket(ticketParam, false);
+        }
+      });
+    }
+
+    function updateStatusLabelAndRender() {
+      const unresolvedCheck = document.getElementById("status-opt-unresolved");
+      const individualChecks = document.querySelectorAll(".status-individual-opt");
+      const labelSpan = document.getElementById("status-selected-label");
+
+      if (unresolvedCheck.checked) {
+        labelSpan.innerText = "All Unresolved";
+      } else {
+        const checkedVals = Array.from(individualChecks)
+          .filter(cb => cb.checked)
+          .map(cb => cb.value);
+        
+        if (checkedVals.length === 0) {
+          unresolvedCheck.checked = true;
+          labelSpan.innerText = "All Unresolved";
+        } else if (checkedVals.length === 1) {
+          labelSpan.innerText = checkedVals[0];
+        } else {
+          labelSpan.innerText = `${checkedVals.length} Statuses`;
+        }
+      }
+      renderTicketList();
+    }
+
+    function renderTicketList() {
+      const container = document.getElementById("ticket-list-container");
+      container.innerHTML = "";
+      
+      const searchQuery = document.getElementById("search-input").value.toLowerCase();
+      const priorityFilter = document.getElementById("filter-priority").value;
+      
+      // Determine selected statuses
+      const unresolvedCheck = document.getElementById("status-opt-unresolved");
+      const individualChecks = document.querySelectorAll(".status-individual-opt");
+      
+      let selectedStatuses = [];
+      if (unresolvedCheck && unresolvedCheck.checked) {
+        selectedStatuses = ["Open", "In Progress", "Waiting on Customer", "Pending Engineering"];
+      } else if (individualChecks) {
+        selectedStatuses = Array.from(individualChecks)
+          .filter(cb => cb.checked)
+          .map(cb => cb.value);
+        if (selectedStatuses.length === 0) {
+          selectedStatuses = ["Open", "In Progress", "Waiting on Customer", "Pending Engineering"];
+        }
+      }
+
+      // Check if Closed tickets should be included
+      const includesClosed = selectedStatuses.includes("Closed");
+
+      // Combine open and closed tickets
+      let combinedTickets = [...window.queueMindMockData.helpdeskTickets];
+      if (includesClosed) {
+        combinedTickets = [...combinedTickets, ...window.queueMindMockData.closedTickets];
+      }
+
+      // Filter tickets
+      const tickets = combinedTickets.filter(ticket => {
+        const matchesText = ticket.id.toLowerCase().includes(searchQuery) ||
+                            ticket.account.toLowerCase().includes(searchQuery) ||
+                            (ticket.subject && ticket.subject.toLowerCase().includes(searchQuery));
+        
+        const matchesPriority = !priorityFilter || ticket.priority === priorityFilter;
+        
+        // Status matching
+        const matchesStatus = selectedStatuses.includes(ticket.status);
+        
+        return matchesText && matchesPriority && matchesStatus;
+      });
+
+      document.getElementById("ticket-count").innerText = `${tickets.length} tickets`;
+
+      tickets.forEach(ticket => {
+        const item = document.createElement("div");
+        item.className = `ticket-item ${ticket.id === activeTicketId ? 'active' : ''}`;
+        item.setAttribute("id", `ticket-item-${ticket.id}`);
+        item.onclick = () => selectTicket(ticket.id);
+
+        let statusClass = "status-open";
+        if (ticket.status.toLowerCase() === 'stalled') {
+          statusClass = 'status-stalled';
+        } else if (ticket.status.toLowerCase() === 'closed') {
+          statusClass = 'status-closed';
+        }
+
+        item.innerHTML = `
+          <div class="ticket-item-header">
+            <span class="ticket-id">${formatTicketId(ticket.id)}</span>
+            <span class="ticket-status ${statusClass}">${ticket.status}</span>
+          </div>
+          <div class="ticket-subject">${ticket.subject || "Closed Support Ticket"}</div>
+          <div class="ticket-meta">
+            <span>${ticket.account}</span>
+            <span>Assignee: ${ticket.assignedTo ? ticket.assignedTo.split(' ')[0] : 'Unassigned'}</span>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function selectTicket(ticketId, updateUrl = true) {
+      activeTicketId = ticketId;
+
+      if (updateUrl) {
+        const newUrl = `${window.location.pathname}?ticket=${ticketId}`;
+        window.history.pushState({ ticketId }, '', newUrl);
+      }
+      
+      // Update sidebar active classes
+      const items = document.querySelectorAll(".ticket-item");
+      items.forEach(item => item.classList.remove("active"));
+      const activeItem = document.getElementById(`ticket-item-${ticketId}`);
+      if (activeItem) activeItem.classList.add("active");
+
+      // Load ticket details from open or closed ticket database
+      const ticket = window.queueMindMockData.helpdeskTickets.find(t => t.id === ticketId) ||
+                     window.queueMindMockData.closedTickets.find(t => t.id === ticketId);
+      if (!ticket) return;
+
+      // Populate layout fields
+      document.getElementById("ticket-subject").innerText = ticket.subject || "Closed Support Ticket";
+      document.getElementById("ticket-id-tag").innerText = `${formatTicketId(ticket.id)} - ${ticket.account}`;
+      
+      const assigneeBadge = document.getElementById("ticket-assignee-badge");
+      assigneeBadge.style.display = "flex";
+      
+      const eng = window.queueMindMockData.engineers.find(e => e.name === ticket.assignedTo);
+      if (eng && eng.avatarImg) {
+        document.getElementById("assignee-avatar").innerHTML = `<img src="${eng.avatarImg}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+      } else {
+        const initials = ticket.assignedTo ? ticket.assignedTo.split(' ').map(n => n[0]).join('') : "UA";
+        document.getElementById("assignee-avatar").innerHTML = initials;
+      }
+      document.getElementById("assignee-name").innerText = ticket.assignedTo || "Unassigned";
+
+      document.getElementById("ticket-attributes").style.display = "flex";
+      document.getElementById("attr-account").innerText = ticket.account;
+      document.getElementById("attr-contact").innerText = ticket.contact || "N/A";
+      document.getElementById("attr-category").innerText = ticket.category;
+      if (document.getElementById("attr-created")) {
+        document.getElementById("attr-created").innerText = new Date(ticket.createdTime || ticket.closedAt).toLocaleString();
+      }
+      
+      const statusAttr = document.getElementById("attr-status");
+      statusAttr.innerText = ticket.status;
+      if (ticket.status.toLowerCase() === 'stalled') {
+        statusAttr.style.color = 'var(--badge-stalled-text)';
+      } else if (ticket.status.toLowerCase() === 'closed') {
+        statusAttr.style.color = 'var(--badge-closed-text)';
+      } else {
+        statusAttr.style.color = 'var(--badge-open-text)';
+      }
+
+      // Set target attributes on container for Chrome extension sidepanel DOM scraper
+      const activeContainer = document.getElementById("active-ticket-container");
+      activeContainer.setAttribute("data-ticket-id", ticket.id);
+      activeContainer.setAttribute("data-subject", ticket.subject || "Closed Support Ticket");
+      activeContainer.setAttribute("data-account", ticket.account);
+      activeContainer.setAttribute("data-contact", ticket.contact || "N/A");
+      activeContainer.setAttribute("data-category", ticket.category);
+      activeContainer.setAttribute("data-assignee", ticket.assignedTo || "Unassigned");
+      activeContainer.setAttribute("data-status", ticket.status);
+      activeContainer.setAttribute("data-complexity", ticket.complexity || "Medium");
+      activeContainer.setAttribute("data-thread-count", ticket.conversations ? ticket.conversations.length : 0);
+      activeContainer.setAttribute("data-created", ticket.createdTime || ticket.closedAt || "");
+
+      // Populate conversations
+      const stream = document.getElementById("conversation-stream-container");
+      stream.innerHTML = "";
+
+      const conversations = ticket.conversations || [
+        { 
+          sender: "customer", 
+          name: "System Log", 
+          message: `Case resolved and closed. CSAT rating: ${ticket.csat} / 5 stars. Average time-to-solve: ${ticket.timeToSolveHours} hours. Closed on ${new Date(ticket.closedAt).toLocaleDateString()}.`,
+          timestamp: ticket.closedAt
+        }
+      ];
+
+      conversations.forEach(msg => {
+        const card = document.createElement("div");
+        card.className = `message-card ${msg.sender}`;
+        
+        let avatarContent = '';
+        if (msg.sender === 'agent') {
+          const eng = window.queueMindMockData.engineers.find(e => e.name === msg.name);
+          if (eng && eng.avatarImg) {
+            avatarContent = `<img src="${eng.avatarImg}" style="width:100%; height:100%; object-fit:cover;">`;
+          } else if (msg.name === "Zapier Support Manager") {
+            avatarContent = `<img src="avatar_manager.png" style="width:100%; height:100%; object-fit:cover;">`;
+          } else {
+            avatarContent = msg.name.split(' ').map(n => n[0]).join('');
+          }
+        } else if (msg.sender === 'customer') {
+          avatarContent = `<img src="avatar_customer.png" style="width:100%; height:100%; object-fit:cover;">`;
+        } else {
+          avatarContent = msg.name.split(' ').map(n => n[0]).join('');
+        }
+
+        const dateStr = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : '';
+        card.innerHTML = `
+          <div class="message-header">
+            <div class="message-sender">
+              <span class="avatar" style="width:20px; height:20px; font-size:10px;">${avatarContent}</span>
+              <span>${msg.name}</span>
+            </div>
+            <span class="message-time">${dateStr}</span>
+          </div>
+          <div class="message-body">${msg.message}</div>
+        `;
+        stream.appendChild(card);
+      });
+    }
+
+    function executeLocalReassign(ticketId, newName, newId) {
+      // Find ticket in local storage and update assignedTo
+      const ticket = window.queueMindMockData.helpdeskTickets.find(t => t.id === ticketId);
+      if (ticket) {
+        const oldAssignee = ticket.assignedTo;
+        ticket.assignedTo = newName;
+        
+        // Re-render ticket list in sidebar
+        renderTicketList();
+        
+        // If we are currently viewing this ticket, update its UI fields immediately
+        if (activeTicketId === ticketId) {
+          selectTicket(ticketId);
+        }
+
+        // Show a confirmation toast to complete the look
+        const toast = document.getElementById("reassign-toast");
+        document.getElementById("toast-message").innerText = `AI Optimization: Reassigned Ticket #${formatTicketId(ticketId)} to ${newName}.`;
+        toast.classList.add("show");
+        
+        setTimeout(() => {
+          toast.classList.remove("show");
+        }, 4000);
+      }
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

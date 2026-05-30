@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QueueMind AI Copilot</title>
+  <link rel="icon" type="image/png" href="queuemind_logo.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Extension Branding Header -->
+  <div class="queuemind-header">
+    <div class="logo-group" style="display: flex; align-items: center; gap: 8px;">
+      <img src="queuemind_logo.png" alt="QueueMind Logo" style="width: 20px; height: 20px; border-radius: 4px; object-fit: cover;">
+      <div class="app-title">QueueMind <span class="badge-copilot">COPILOT</span></div>
+    </div>
+    <div class="status-indicator" id="extension-status">Active Tab</div>
+  </div>
+
+  <!-- Navigation Tabs: Set Team tab as active by default -->
+  <div class="tab-nav" role="tablist" aria-label="Extension Navigation">
+    <button class="tab-btn active" data-tab="tab-team" role="tab" aria-selected="true" aria-controls="tab-team" id="tab-team-btn">Team</button>
+    <button class="tab-btn" data-tab="tab-analyzer" role="tab" aria-selected="false" aria-controls="tab-analyzer" id="tab-analyzer-btn">Case View</button>
+    <button class="tab-btn" data-tab="tab-settings" role="tab" aria-selected="false" aria-controls="tab-settings" id="tab-settings-btn">Settings</button>
+  </div>
+
+  <!-- Main Scrollable Content Area -->
+  <div class="tab-content-container">
+
+    <!-- Tab 1: Team Dashboard (Default Active Macro Workflow) -->
+    <div class="tab-pane active" id="tab-team" role="tabpanel" aria-labelledby="tab-team-btn">
+      <div id="team-crm-banner-container"></div>
+
+      <div style="margin-bottom: 12px; display: flex; justify-content: flex-end;">
+        <button class="secondary-action-btn" id="btn-batch-analyze" style="font-size: 11px; padding: 6px 12px; display: flex; align-items: center; gap: 4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Batch Analyze Backlogs
+        </button>
+      </div>
+
+      <!-- Batch Analysis Progress Indicator -->
+      <div id="batch-progress-container" style="display: none; margin-bottom: 12px; background: rgba(22, 30, 49, 0.4); border: 1px solid var(--border-glass); border-radius: 6px; padding: 10px; line-height: 1.4; backdrop-filter: blur(8px);">
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px;">
+          <span id="batch-progress-text" style="color: var(--color-text-main); font-weight: 600;">Analyzing ticket queues...</span>
+          <span id="batch-progress-percent" style="color: var(--color-primary-light); font-weight: 600; display: none;">0%</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; overflow: hidden;">
+          <div id="batch-progress-bar" style="background: linear-gradient(90deg, var(--primary-accent), #ff8c00); width: 0%; height: 100%; transition: width 0.2s ease;"></div>
+        </div>
+      </div>
+
+      <!-- Expandable Engineer Cards container -->
+      <div class="engineer-grid" id="team-engineers-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Tab 2: Case Analyzer (Micro Workflow - Inactive on Load) -->
+    <div class="tab-pane" id="tab-analyzer" role="tabpanel" aria-labelledby="tab-analyzer-btn">
+      
+      <div class="action-bar">
+        <button class="primary-action-btn" id="btn-scrape-active">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Analyze Active Ticket
+        </button>
+      </div>
+
+      <!-- Empty State -->
+      <div id="analyzer-empty" class="empty-state">
+        <div class="empty-icon" style="color: var(--color-text-dim);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon" style="opacity: 0.5; margin-bottom: 8px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <p id="empty-state-text">No active analysis. Navigate to a ticket page on the mock Helpdesk and click the button above to execute the AI pipeline.</p>
+      </div>
+
+      <!-- Loaded Active Ticket View -->
+      <div id="analyzer-results" style="display: none;">
+        
+        <!-- Case Summary Header -->
+        <div class="section-card">
+          <div class="card-title-row">
+            <span class="ticket-ref" id="res-ticket-id">T-1002</span>
+            <span class="badge-category" id="res-ticket-category">Auth/OAuth</span>
+          </div>
+          <div class="ticket-subject-title" id="res-ticket-subject">Salesforce OAuth connection token expired</div>
+          <div class="ticket-org-detail">
+            Account: <strong id="res-ticket-account">Stark Industries</strong> | Assignee: <span id="res-ticket-assignee">John Doe</span>
+          </div>
+        </div>
+
+        <!-- AI Quantitative Assessment Grid -->
+        <div class="metrics-grid">
+          <div class="metric-box attention">
+            <div class="metric-circle" id="res-attention-ring" tabindex="0" role="note">
+              <span class="metric-val" id="res-attention-score">-</span>
+              <span class="metric-max">/100</span>
+            </div>
+            <div class="metric-label" style="display: flex; align-items: center;">
+              Attention
+              <span class="info-icon tooltip-align-left" tabindex="0" role="note" data-tooltip="Attention Score (0-100): Measures urgency & loop risk.&#10;• Red (≥75): Critical. Active loop or high frustration. Escalation required.&#10;• Yellow (40-74): Warning. Moderate urgency; monitor thread.&#10;• Green (&lt;40): Stable. Proceed normally.">i</span>
+            </div>
+          </div>
+          <div class="metric-box sentiment">
+            <div class="metric-circle" id="res-sentiment-ring" tabindex="0" role="note">
+              <span class="metric-val" id="res-sentiment-score">-</span>
+              <span class="metric-max">/100</span>
+            </div>
+            <div class="metric-label" style="display: flex; align-items: center;">
+              Sentiment
+              <span class="info-icon" tabindex="0" role="note" data-tooltip="Sentiment Score (0-100): Customer emotional satisfaction index.&#10;• Red (&lt;30): Frustrated. Customer is highly upset or demands callback.&#10;• Yellow (30-59): Neutral. Standard troubleshooting or inquiry.&#10;• Green (≥60): Satisfied. Positive feedback or polite request.">i</span>
+            </div>
+          </div>
+          <div class="metric-box complexity">
+            <div class="metric-circle" id="res-complexity-ring" tabindex="0" role="note">
+              <span class="metric-val" id="res-complexity-score">-</span>
+              <span class="metric-max">/100</span>
+            </div>
+            <div class="metric-label" style="display: flex; align-items: center;">
+              Complexity
+              <span class="info-icon tooltip-align-right" tabindex="0" role="note" data-tooltip="Complexity Score (0-100): Technical severity & effort rating.&#10;• Red (≥75): High. Advanced code errors or multi-system auth issues.&#10;• Yellow (35-74): Medium. Custom endpoints, mappings, or API limits.&#10;• Green (&lt;35): Low. Basic config or simple format questions.">i</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Summary & Diagnostics Card -->
+        <div class="section-card">
+          <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <span style="display: flex; align-items: center;">
+              AI Diagnostics
+              <span class="info-icon" tabindex="0" role="note" data-tooltip="Analysis of conversation threads and system state. Connect your API key in Settings for live Gemini LLM results.">i</span>
+            </span>
+            <button class="icon-btn-refresh" id="btn-refresh-ai" title="Force Refresh AI Analysis">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </button>
+          </div>
+          
+          <!-- Summary Block -->
+          <div style="font-size: 11.5px; line-height: 1.4; color: var(--color-text-main); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 10px 12px; margin-bottom: 2px;">
+            <strong style="color: var(--color-primary-light); font-size: 10.5px; text-transform: uppercase; display: block; margin-bottom: 4px; letter-spacing: 0.5px;">AI Summary</strong>
+            <span id="res-ai-summary">Analyzing ticket...</span>
+          </div>
+
+          <!-- Alert/Diagnosis Block -->
+          <div class="alert-box" id="res-loop-alert" style="display: none; margin-bottom: 2px;">
+            <span class="alert-icon" style="display: flex; align-items: center; justify-content: center; height: 16px; width: 16px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+            <div class="alert-text">
+              <strong>Diagnosis Warning</strong>
+              <span id="res-loop-desc">Customer frustration loop detected.</span>
+            </div>
+          </div>
+
+          <!-- Coaching / recommended next action Block -->
+          <div class="coaching-directions">
+            <div class="coaching-title">Recommendation:</div>
+            <div id="res-intervention-guidance">Reviewing logs...</div>
+          </div>
+
+          <!-- Gemini attribution badge -->
+          <div id="ai-provider-badge" style="font-size: 9px; color: var(--color-text-muted); text-align: right; margin-top: 4px; font-style: italic; opacity: 0.7;">
+            Running in local sandbox mode
+          </div>
+        </div>
+
+        <!-- Manager Actions Card -->
+        <div class="section-card" id="res-actions-card" style="display: none;">
+          <div class="section-header">
+            <span>
+              Manager Actions
+              <span class="info-icon" tabindex="0" role="note" data-tooltip="Respond to the customer, revise with AI, or ping the assignee on Slack directly.">i</span>
+            </span>
+          </div>
+          <div id="res-actions-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <!-- Reassignment Optimization Grid -->
+        <div class="section-card">
+          <div class="section-header" id="reassign-matrix-header" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+            <span style="display: flex; align-items: center;">
+              Smart Reassignment
+              <span class="info-icon" tabindex="0" role="note" data-tooltip="Recommends target engineers by comparing skills specialization history, backlog loads, and client affinity.">i</span>
+            </span>
+            <span id="reassign-toggle-icon" style="font-size: 11px; font-weight: normal; color: var(--color-text-muted);">▼ Show Options</span>
+          </div>
+
+          <div class="current-assignee-load" id="res-assignee-load-card">
+            <span style="display: flex; align-items: center; gap: 4px;">
+              <span id="res-assignee-load-lbl">Assignee Capacity Load:</span>
+              <span class="info-icon" tabindex="0" role="note" data-tooltip="Capacity load score where 50 is the team average. Scores above 50 represent above-average workload, while scores below 50 indicate extra capacity. Judged from backlog complexities and customer sentiment.">i</span>
+            </span>
+            <strong class="warning" id="res-assignee-load-val">45 (Average)</strong>
+          </div>
+
+          <div id="reassign-collapsible-wrapper" style="display: none;">
+            <div class="reassign-list" id="res-reassign-container">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <button class="reassign-execute-btn" id="btn-execute-reassign" style="display:none;">
+              Execute Reassignment and Notify Manager
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tab 4: Settings -->
+    <div class="tab-pane" id="tab-settings" role="tabpanel" aria-labelledby="tab-settings-btn">
+      
+      <div class="section-card">
+        <div class="section-title" style="display: flex; align-items: center;">
+          Tracked Team Members
+          <span class="info-icon" tabindex="0" role="note" data-tooltip="Select support engineers to track on your dashboard monitor. Scroll or search through the full list.">i</span>
+        </div>
+        <div class="settings-form" id="settings-tracked-engineers-form">
+          <p class="form-help" style="margin-bottom: 10px;">Select which support engineers to display on your monitor dashboard.</p>
+          
+          <div style="position: relative; margin-bottom: 10px;">
+            <input type="text" id="settings-engineer-search" class="form-input" placeholder="Search engineers to track..." style="width: 100%;">
+          </div>
+
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; padding: 0 2px;">
+            <button type="button" id="btn-select-all-engineers" style="background: transparent; border: none; color: var(--color-primary-light); font-size: 10.5px; cursor: pointer; padding: 0; font-weight: 600;">Select All</button>
+            <button type="button" id="btn-clear-all-engineers" style="background: transparent; border: none; color: #ef4444; font-size: 10.5px; cursor: pointer; padding: 0; font-weight: 600;">Clear All</button>
+          </div>
+
+          <div id="settings-engineer-list-container" style="max-height: 180px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; background: rgba(0,0,0,0.15); padding: 4px; display: flex; flex-direction: column; gap: 4px;">
+            <!-- Dynamically populated selectable rows -->
+          </div>
+          
+          <button class="primary-action-btn" id="btn-save-tracked-engineers" style="margin-top: 15px; width: 100%;">
+            Save Tracked Engineers
+          </button>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title" style="display: flex; align-items: center;">
+          Manager Integrations
+          <span class="info-icon" tabindex="0" role="note" data-tooltip="Enables automation bridges such as Slack alerts for instant notifications.">i</span>
+        </div>
+        
+        <div class="settings-form">
+          <label class="form-label" for="settings-slack-url">Slack Incoming Webhook URL</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="settings-slack-url" class="form-input" placeholder="https://hooks.slack.com/services/T00/B00/X00" style="padding-right: 45px; width: 100%;">
+            <button type="button" class="password-toggle-btn" id="btn-toggle-slack-url" style="position: absolute; right: 10px; background: none; border: none; color: var(--color-text-dim); cursor: pointer; font-size: 11px; padding: 4px; user-select: none;">Show</button>
+          </div>
+          <p class="form-help">Enter a webhook URL from your Slack workspace to receive real-time notifications when you trigger reassignments or when outages are detected.</p>
+          
+          <label class="form-label" for="settings-slack-member-id" style="margin-top: 12px; display: block;">Slack Member ID to Mention (Optional)</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="settings-slack-member-id" class="form-input" placeholder="U12345678" style="padding-right: 45px; width: 100%;">
+            <button type="button" class="password-toggle-btn" id="btn-toggle-slack-member-id" style="position: absolute; right: 10px; background: none; border: none; color: var(--color-text-dim); cursor: pointer; font-size: 11px; padding: 4px; user-select: none;">Show</button>
+          </div>
+          <p class="form-help">Enter your Slack Member ID (e.g. U12345678) to be directly tagged in Slack alerts. Find this under View Profile -> More -> Copy Member ID in Slack.</p>
+
+          <button class="secondary-action-btn" id="settings-test-slack" style="margin-top:12px;">Test Slack Webhook</button>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title" style="display: flex; align-items: center;">
+          Gemini AI Core Settings
+          <span class="info-icon" tabindex="0" role="note" data-tooltip="Enables live analysis of customer logs using Google Gemini Large Language Models.">i</span>
+        </div>
+        
+        <div class="settings-form">
+          <label class="form-label" for="settings-gemini-key">Gemini API Key</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="settings-gemini-key" class="form-input" placeholder="AIzaSy..." style="padding-right: 45px; width: 100%;">
+            <button type="button" class="password-toggle-btn" id="btn-toggle-gemini-key" style="position: absolute; right: 10px; background: none; border: none; color: var(--color-text-dim); cursor: pointer; font-size: 11px; padding: 4px; user-select: none;">Show</button>
+          </div>
+          <p class="form-help">Enter your Google Gemini API Key. The key is stored locally in your browser storage. A valid key is required to execute AI analyses.</p>
+          
+          <label class="form-label" for="settings-gemini-model" style="margin-top: 12px; display: block;">Gemini Model</label>
+          <select id="settings-gemini-model" class="form-input">
+            <!-- Flash-lite Models -->
+            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
+            <option value="gemini-2.0-flash-lite-001">gemini-2.0-flash-lite-001</option>
+            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+            <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+            <option value="gemini-flash-lite-latest">gemini-flash-lite-latest</option>
+            <!-- Flash Models -->
+            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+            <option value="gemini-2.0-flash-001">gemini-2.0-flash-001</option>
+            <option value="gemini-2.5-flash" selected>gemini-2.5-flash (Default)</option>
+            <option value="gemini-2.5-flash-image">gemini-2.5-flash-image</option>
+            <option value="gemini-3.1-flash-image">gemini-3.1-flash-image</option>
+            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+            <option value="gemini-flash-latest">gemini-flash-latest</option>
+            <!-- Pro Models -->
+            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+            <option value="gemini-3-pro-image">gemini-3-pro-image</option>
+            <option value="gemini-pro-latest">gemini-pro-latest</option>
+            <!-- Other Models -->
+            <option value="gemma-4-26b-a4b-it">gemma-4-26b-a4b-it</option>
+            <option value="gemma-4-31b-it">gemma-4-31b-it</option>
+          </select>
+          <p class="form-help">Select the Gemini model version. If you receive a 404 error, try switching model versions.</p>
+          
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="secondary-action-btn" id="settings-test-gemini" style="flex: 1; margin-top: 0; width: auto;">Test Connection</button>
+            <button class="secondary-action-btn" id="settings-list-models" style="flex: 1; margin-top: 0; width: auto;">List Models</button>
+          </div>
+          <div id="settings-gemini-test-result" style="margin-top:8px; font-size:11px; display:none; padding:8px; border-radius:4px; line-height: 1.4;"></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title" style="display: flex; align-items: center;">
+          CRM Server API Settings
+          <span class="info-icon" tabindex="0" role="note" data-tooltip="Configuration for connecting to the QueueMind CRM backend server.">i</span>
+        </div>
+        <div class="settings-form">
+          <label class="form-label" for="settings-crm-server">CRM Server URL</label>
+          <input type="text" id="settings-crm-server" class="form-input" placeholder="http://localhost:8282" style="width: 100%; margin-bottom: 10px;">
+          
+          <label class="form-label" for="settings-crm-auth-type">API Authentication Type</label>
+          <select id="settings-crm-auth-type" class="form-input" style="width: 100%; margin-bottom: 10px;">
+            <option value="None">None</option>
+            <option value="Bearer">Bearer Token</option>
+            <option value="Basic">Username / Password</option>
+          </select>
+          
+          <div id="settings-crm-username-block" style="display: none; margin-bottom: 10px;">
+            <label class="form-label" for="settings-crm-username">CRM API Username</label>
+            <input type="text" id="settings-crm-username" class="form-input" placeholder="manager" style="width: 100%;">
+          </div>
+          
+          <div id="settings-crm-password-block" style="display: none; margin-bottom: 10px;">
+            <label class="form-label" id="lbl-crm-password" for="settings-crm-password">CRM API Password</label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="settings-crm-password" class="form-input" placeholder="••••••••" style="padding-right: 45px; width: 100%;">
+              <button type="button" class="password-toggle-btn" id="btn-toggle-crm-password" style="position: absolute; right: 10px; background: none; border: none; color: var(--color-text-dim); cursor: pointer; font-size: 11px; padding: 4px; user-select: none;">Show</button>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 12px; align-items: center;">
+            <input type="checkbox" id="settings-sync-on-save" style="cursor: pointer;" checked>
+            <label for="settings-sync-on-save" class="form-help" style="margin-top: 0; cursor: pointer; user-select: none; font-weight: 500; color: var(--color-text-main);">Sync tickets on configuration save</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title" style="display: flex; align-items: center;">
+          Database Diagnostics & Reset
+          <span class="info-icon" tabindex="0" role="note" data-tooltip="Clear local caches and restore the mock database to clean start conditions.">i</span>
+        </div>
+        <div class="settings-form">
+          <p class="form-help" style="margin-bottom: 12px;">Reset the database state and clear local caches (state, AI analysis) back to original default conditions.</p>
+          <button class="primary-action-btn" id="btn-reset-db" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; width: 100%;">
+            Reset Database & Clear Caches
+          </button>
+        </div>
+      </div>
+
+      <div class="section-card feedback-card">
+        <div class="sidebar-footer">
+          <div>QueueMind Copilot v1.0</div>
+          <div>Configured for Zapier Support Operations</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Import Scripts -->
+  <script src="mockData.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

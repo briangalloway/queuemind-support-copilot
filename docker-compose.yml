@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  queuemind-server:
+    container_name: queuemind_mock_server
+    build: .
+    ports:
+      - "8282:8282"
+    volumes:
+      # Mount the local folder to allow real-time file updates and DB persistence
+      - .:/app
